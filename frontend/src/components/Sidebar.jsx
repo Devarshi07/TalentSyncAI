@@ -53,10 +53,14 @@ export default function Sidebar({ activePage, onNavigate, chatHistory, onNewChat
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Logo */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 2, py: 2 }}>
-        <Box sx={{ width: 32, height: 32, borderRadius: 1.5, bgcolor: 'primary.main', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <WorkOutline sx={{ color: 'white', fontSize: 18 }} />
+        <Box sx={{
+          width: 32, height: 32, borderRadius: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: 'linear-gradient(135deg, #6366f1, #818cf8)',
+          boxShadow: '0 2px 8px rgba(99,102,241,0.3)',
+        }}>
+          <Typography sx={{ color: 'white', fontSize: 12, fontWeight: 800 }}>TS</Typography>
         </Box>
-        <Typography variant="subtitle1" fontWeight={700}>Job Assistant</Typography>
+        <Typography variant="subtitle1" fontWeight={700}>TalentSync AI</Typography>
       </Box>
 
       {/* New Chat */}
