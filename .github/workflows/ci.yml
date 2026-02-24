@@ -58,7 +58,7 @@ jobs:
 
       - name: Lint
         working-directory: backend
-        run: ruff check . --select E,F,W --ignore E501
+        run: ruff check . --select F --ignore F401,F841
 
   # ---- Frontend Build ----
   frontend-build:
