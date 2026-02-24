@@ -6,7 +6,7 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "https://your-backend.azurecontainerapps.io/api/$1"
+      "destination": "https://talentsyncai-api.livelyground-397f3ed3.eastus.azurecontainerapps.io/api/$1"
     }
   ]
 }
