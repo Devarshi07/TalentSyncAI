@@ -7,6 +7,10 @@
     {
       "source": "/api/(.*)",
       "destination": "https://talentsyncai-api.livelyground-397f3ed3.eastus.azurecontainerapps.io/api/$1"
+    },
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/index.html"
     }
   ]
 }
