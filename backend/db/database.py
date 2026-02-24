@@ -13,6 +13,11 @@ connect_args = {"check_same_thread": False} if is_sqlite else {}
 pool_class = StaticPool if is_sqlite else QueuePool
 pool_size = {} if is_sqlite else {"pool_size": DB_POOL_SIZE, "max_overflow": DB_MAX_OVERFLOW}
 
+# Supabase and cloud DBs require SSL
+if not is_sqlite and "sslmode" not in DATABASE_URL:
+    if "supabase" in DATABASE_URL or "neon" in DATABASE_URL:
+        DATABASE_URL = DATABASE_URL + ("&" if "?" in DATABASE_URL else "?") + "sslmode=require"
+
 engine = create_engine(
     DATABASE_URL,
     connect_args=connect_args,

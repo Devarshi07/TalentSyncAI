@@ -252,8 +252,15 @@ See [`backend/.env.example`](backend/.env.example) for all options.
 docker-compose up --build -d
 ```
 
-### Google Cloud Run
-The Dockerfiles are Cloud Run compatible. Add `gcloud` deploy steps to `.github/workflows/deploy.yml`.
+### Cloud Deployment (Free)
+
+See **[DEPLOYMENT.md](DEPLOYMENT.md)** for full instructions.
+
+| Service | Platform | Cost |
+|---------|----------|------|
+| Frontend | Vercel | Free |
+| Backend | Azure Container Apps | $0-2/mo |
+| Database | Supabase PostgreSQL | Free (500MB) |
 
 ### Manual
 1. Set up PostgreSQL
