@@ -1,0 +1,43 @@
+# ===== Python =====
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+*.egg
+.pytest_cache/
+.coverage
+htmlcov/
+venv/
+.venv/
+
+# ===== Node =====
+node_modules/
+dist/
+.cache/
+
+# ===== Environment / Secrets =====
+.env
+.env.local
+.env.*.local
+backend/.env
+
+# ===== IDE =====
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ===== OS =====
+.DS_Store
+Thumbs.db
+*.log
+
+# ===== Docker =====
+postgres_data/
+
+# ===== Misc =====
+*.bak
+*.tmp

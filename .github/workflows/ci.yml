@@ -1,0 +1,186 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  PYTHON_VERSION: "3.12"
+  NODE_VERSION: "20"
+
+jobs:
+  # ---- Backend Tests ----
+  backend-test:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        working-directory: backend
+        run: pip install -r requirements.txt
+
+      - name: Run tests
+        working-directory: backend
+        env:
+          DATABASE_URL: "sqlite://"
+          GEMINI_API_KEY: ""
+          RATE_LIMIT_ENABLED: "false"
+          JWT_SECRET: "ci-test-secret"
+          DEBUG: "true"
+        run: pytest tests/ -v --tb=short
+
+  # ---- Backend Lint ----
+  backend-lint:
+    name: Backend Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install ruff
+        run: pip install ruff
+
+      - name: Lint
+        working-directory: backend
+        run: ruff check . --select E,F,W --ignore E501
+
+  # ---- Frontend Build ----
+  frontend-build:
+    name: Frontend Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build
+        working-directory: frontend
+        run: npm run build
+
+  # ---- Docker Build ----
+  docker-build:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    needs: [backend-test, frontend-build]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build backend image
+        run: docker build -t job-assistant-api ./backend
+
+      - name: Build frontend image
+        run: docker build -t job-assistant-web ./frontend
+
+  # ---- Integration Test (full stack) ----
+  integration:
+    name: Integration Test
+    runs-on: ubuntu-latest
+    needs: [backend-test]
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: job_assistant_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        working-directory: backend
+        run: pip install -r requirements.txt
+
+      - name: Run migrations
+        working-directory: backend
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/job_assistant_test
+        run: |
+          python -c "
+          from db.database import Base, engine
+          from db import models
+          Base.metadata.create_all(bind=engine)
+          print('Tables created')
+          "
+
+      - name: Start server
+        working-directory: backend
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/job_assistant_test
+          GEMINI_API_KEY: ""
+          JWT_SECRET: "ci-integration-secret"
+          RATE_LIMIT_ENABLED: "false"
+          DEBUG: "true"
+        run: |
+          uvicorn app:app --host 0.0.0.0 --port 5001 &
+          sleep 3
+
+      - name: Health check
+        run: |
+          curl -f http://localhost:5001/health || exit 1
+          echo "Health check passed"
+
+      - name: Test signup + login flow
+        run: |
+          # Signup
+          SIGNUP=$(curl -s -X POST http://localhost:5001/api/auth/signup \
+            -H "Content-Type: application/json" \
+            -d '{"username":"ciuser","email":"ci@test.com","password":"CIPass123"}')
+          echo "Signup: $SIGNUP"
+          TOKEN=$(echo $SIGNUP | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
+
+          # Get profile
+          curl -sf http://localhost:5001/api/profile \
+            -H "Authorization: Bearer $TOKEN" || exit 1
+          echo "Profile check passed"
+
+          # Send chat message
+          CHAT=$(curl -s -X POST http://localhost:5001/api/chat \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer $TOKEN" \
+            -d '{"message":"Hello"}')
+          echo "Chat: $CHAT"
+
+          echo "All integration tests passed!"
